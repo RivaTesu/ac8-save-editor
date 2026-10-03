@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ac8Save/Ac8Save.csproj" />
+    <Project Path="src/Ac8SaveEditor/Ac8SaveEditor.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ac8Save\Ac8Save.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>Ac8SaveEditor</AssemblyName>
+    <Version>1.0.0</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+    <None Include="enums.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="strings.pt.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\assets.zip" Link="assets.zip" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\assets.zip')" />
+  </ItemGroup>
+</Project>

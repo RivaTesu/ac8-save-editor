@@ -31,7 +31,7 @@ Requires the .NET 10 SDK on Windows.
 dotnet publish src/Ac8SaveEditor -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish
 ```
 
-The game data (icons, tables, text) is not in this repository. Copy `assets.zip` from a release into the repository root before building, or next to the published exe afterwards. Without it the editor still opens and edits saves, just without names and pictures.
+The game data (icons, tables, text) is not in this repository. Download [assets.zip](https://github.com/RivaTesu/ac8-save-editor/releases/download/v1.0.0/assets.zip) and put it in the repository root before building, or next to the published exe afterwards. Without it the editor still opens and edits saves, just without names and pictures.
 
 ## Project layout
 

@@ -78,6 +78,10 @@ public sealed class GameData
     public List<AssaultInfo> AssaultRecords { get; } = new();
     public List<TreeNodeInfo> TreeNodes { get; } = new();
     public Dictionary<uint, UnlockRule> UnlockRules { get; } = new();
+    // Key is the full enum name, e.g. "ELiveWeaponID::WID_4aam".
+    public Dictionary<string, WeaponInfo> Weapons { get; } = new();
+    // ELiveWeaponID names in numeric order.
+    public List<string> WeaponOrder { get; } = new();
 
     public GameData(string root, string lang = "en")
     {
@@ -93,6 +97,7 @@ public sealed class GameData
         LoadMissions("data/mission.json");
         LoadAssault("data/assault.json");
         LoadTreeNodes("data/treenode.json");
+        LoadWeapons("data/weapon.json", "data/spweapon.json");
         foreach (var f in Store.List("data").Where(f => Path.GetFileName(f).StartsWith("unlock_"))) LoadUnlock(f);
     }
 
@@ -179,6 +184,33 @@ public sealed class GameData
             });
         }
         Aircraft.Sort((a, b) => a.Sort.CompareTo(b.Sort));
+    }
+
+    void LoadWeapons(string weaponPath, string spPath)
+    {
+        foreach (var r in Rows(weaponPath))
+        {
+            var id = S(r, "WeaponID");
+            if (id == "") continue;
+            Weapons[id] = new WeaponInfo
+            {
+                Id = id,
+                Name = T(S(r, "WeaponNameTextID"), Enum(r, "WeaponID")),
+                ShortName = T(S(r, "WeaponShortNameTextID"), Enum(r, "WeaponID")),
+                Description = T(S(r, "WeaponDescriptionTextID"), ""),
+            };
+        }
+        var txt = Store.ReadText(spPath);
+        if (txt == null) return;
+        using var doc = JsonDocument.Parse(txt);
+        foreach (var w in doc.RootElement.GetProperty("WeaponOrder").EnumerateArray()) WeaponOrder.Add(w.GetString() ?? "");
+        foreach (var p in doc.RootElement.GetProperty("Planes").EnumerateObject())
+        {
+            var ac = Aircraft.FirstOrDefault(a => a.Id.ToString() == p.Name);
+            if (ac == null) continue;
+            // Slot 1 is the weapon the game gives with the aircraft. WID_NONE marks an unused slot.
+            ac.SpWeapons = p.Value.EnumerateArray().Select(v => v.GetString() ?? "").Where(v => v != "" && v != "ELiveWeaponID::WID_NONE").ToList();
+        }
     }
 
     string? FindAircraftIcon(string shortId)
@@ -337,7 +369,8 @@ public sealed class GameData
 }
 
 public sealed class MedalInfo { public uint Id; public string Name = ""; public string Description = ""; public string Hint = ""; public string? Icon; public string? LockedIcon; }
-public sealed class AircraftInfo { public uint Id; public string StringId = ""; public string ShortId = ""; public string Name = ""; public string Nickname = ""; public string Description = ""; public string Category = ""; public long Cost; public long Sort; public string? Icon; public uint DefaultSkinId; public long[] Stats = Array.Empty<long>(); }
+public sealed class AircraftInfo { public uint Id; public string StringId = ""; public string ShortId = ""; public string Name = ""; public string Nickname = ""; public string Description = ""; public string Category = ""; public long Cost; public long Sort; public string? Icon; public uint DefaultSkinId; public long[] Stats = Array.Empty<long>(); public List<string> SpWeapons = new(); }
+public sealed class WeaponInfo { public string Id = ""; public string Name = ""; public string ShortName = ""; public string Description = ""; }
 public sealed class SkinInfo { public uint Id; public string PlaneStringId = ""; public string Name = ""; public string Description = ""; public string Category = ""; public string? Icon; public string? Banner; public long Sort; public string Dlc = ""; }
 public sealed class EmblemInfo { public uint Id; public string Name = ""; public string Description = ""; public string Category = ""; public string? Icon; public long Sort; public bool Online; }
 public sealed class PartInfo { public uint Id; public string Name = ""; public string ShortName = ""; public string Description = ""; public string Position = ""; public string Kind = ""; public long Cost; public long Sort; public string? Icon; }

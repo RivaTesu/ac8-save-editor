@@ -52,7 +52,8 @@ public sealed class CampaignModel
     public string EnumOf(string name) => Find(name)?.Value is EnumValue ev ? ev.V : "";
     public void SetEnum(string name, string v) { if (Find(name)?.Value is EnumValue ev) ev.V = v; }
 
-    // OwnedAircrafts: TMap<uint32 PlaneID, uint8 flags>
+    // OwnedAircrafts: TMap<uint32 PlaneID, uint8 copies>. The tree sells up to 4 copies (player + 3 wingmen).
+    // An aircraft that the game grants as a reward gets 4.
     public Dictionary<uint, byte> OwnedAircraft()
     {
         var d = new Dictionary<uint, byte>();
@@ -61,7 +62,7 @@ public sealed class CampaignModel
         return d;
     }
 
-    public void SetOwnedAircraft(uint id, bool owned, byte flags = 4)
+    public void SetOwnedAircraft(uint id, bool owned, byte copies = 4)
     {
         if (Find("OwnedAircrafts")?.Value is not MapValue m) return;
         var idx = m.Items.FindIndex(e => (uint)((IntValue)e.Key).V == id);
@@ -69,7 +70,7 @@ public sealed class CampaignModel
         {
             var e = new MapEntry { Index = m.Items.Count, Parent = m };
             e.Key = new IntValue { V = id, Kind = "UInt32Property", Parent = e };
-            e.Val = new ByteValue { V = flags, Parent = e };
+            e.Val = new ByteValue { V = copies, Parent = e };
             m.Items.Add(e);
         }
         else if (!owned && idx >= 0)
@@ -78,6 +79,66 @@ public sealed class CampaignModel
             for (int i = 0; i < m.Items.Count; i++) m.Items[i].Index = i;
         }
         SetContains("NewlyOwnedAircrafts", id, owned);
+    }
+
+    // The game keeps owned special weapons in AircraftTypeRecords[].OwnedWeapons, not in the OwnedAircrafts value.
+    // Without a record the hangar shows every special weapon as locked, including the default one.
+    StructValue? AircraftRecord(uint planeId) =>
+        Array("AircraftTypeRecords")?.Items.Select(e => e.Value as StructValue)
+            .FirstOrDefault(sv => sv?.Props.FirstOrDefault(p => p.Name == "PlaneID")?.Value is IntValue iv && (uint)iv.V == planeId);
+
+    public List<string> OwnedWeapons(uint planeId) =>
+        AircraftRecord(planeId)?.Props.FirstOrDefault(p => p.Name == "OwnedWeapons")?.Value is ArrayValue a
+            ? a.Items.Select(e => (e.Value as EnumValue)?.V ?? "").ToList()
+            : new();
+
+    // Creates an empty record the same way the game does when it grants an aircraft: zero stats, no pilot data, no weapons.
+    StructValue? EnsureAircraftRecord(uint planeId, string category)
+    {
+        if (AircraftRecord(planeId) is StructValue found) return found;
+        if (Array("AircraftTypeRecords") is not ArrayValue list || list.Items.Count == 0 || list.Items[0].Value is not StructValue template) return null;
+        var w = new Writer();
+        w.Properties(template.Props);
+        var r = new Reader(w.ToArray());
+        var copy = new StructValue();
+        copy.Props = r.Properties(copy);
+        foreach (var p in copy.Props)
+        {
+            switch (p.Value)
+            {
+                case IntValue iv: iv.V = p.Name == "PlaneID" ? planeId : 0; break;
+                case EnumValue ev when p.Name == "PlaneCategory" && category != "": ev.V = category; break;
+                case ArrayValue av: av.Items.Clear(); break;
+            }
+        }
+        var el = new Element { Index = list.Items.Count, Value = copy, Parent = list };
+        copy.Parent = el;
+        list.Items.Add(el);
+        return copy;
+    }
+
+    // order: ELiveWeaponID names by numeric value. The game keeps both weapon lists sorted that way.
+    public bool SetOwnedWeapon(uint planeId, string weaponId, bool owned, string category = "", List<string>? order = null)
+    {
+        var rec = owned ? EnsureAircraftRecord(planeId, category) : AircraftRecord(planeId);
+        if (rec == null) return !owned;
+        int Rank(string id) { var i = order?.IndexOf(id) ?? -1; return i < 0 ? int.MaxValue : i; }
+        foreach (var name in new[] { "OwnedWeapons", "NewlyOwnedWeapons" })
+        {
+            if (rec.Props.FirstOrDefault(p => p.Name == name)?.Value is not ArrayValue a) continue;
+            var idx = a.Items.FindIndex(e => e.Value is EnumValue ev && ev.V == weaponId);
+            if (owned && idx < 0)
+            {
+                var at = a.Items.FindIndex(e => e.Value is EnumValue ev && Rank(ev.V) > Rank(weaponId));
+                if (at < 0) at = a.Items.Count;
+                var e = new Element { Parent = a };
+                e.Value = new EnumValue { V = weaponId, Parent = e };
+                a.Items.Insert(at, e);
+                Reindex(a);
+            }
+            else if (!owned && idx >= 0) { a.Items.RemoveAt(idx); Reindex(a); }
+        }
+        return true;
     }
 
     public uint FeatureFlagMask { get => (uint)Int("FeatureFlagMask"); set => SetInt("FeatureFlagMask", value); }

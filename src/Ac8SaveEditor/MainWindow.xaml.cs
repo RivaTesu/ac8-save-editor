@@ -252,7 +252,11 @@ public partial class MainWindow : Window
         public string Title = ""; public string Sub = ""; public string? Image; public double ImgW = 96, ImgH = 96; public int Decode = 160;
         public Func<bool> Get = () => false; public Action<bool> Set = _ => { };
         public Action? ShowDetail; public string SearchText = ""; public string Group = "";
+        // Extra per-card switches. They are enabled only while the main switch is on.
+        public List<CardOption> Options = new();
     }
+
+    sealed record CardOption(string Label, string Tip, Func<bool> Get, Action<bool> Set);
 
     bool Visible(CardItem it) =>
         (search.Length == 0 || it.SearchText.Contains(search, StringComparison.OrdinalIgnoreCase) || it.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
@@ -284,6 +288,14 @@ public partial class MainWindow : Window
                 chk.Checked += (_, _) => { it.Set(true); MarkDirty(it.Title); Build(); };
                 chk.Unchecked += (_, _) => { it.Set(false); MarkDirty(it.Title); Build(); };
                 stack.Children.Add(chk);
+                foreach (var opt in it.Options)
+                {
+                    bool optOn = opt.Get();
+                    var oc = new CheckBox { Content = opt.Label, ToolTip = opt.Tip, IsChecked = optOn, IsEnabled = state, FontSize = 11, Margin = new Thickness(0, 2, 0, 0), Foreground = optOn ? Res("Fg") : Res("Fg2") };
+                    oc.Checked += (_, _) => { opt.Set(true); MarkDirty($"{it.Title}: {opt.Label}"); Build(); };
+                    oc.Unchecked += (_, _) => { opt.Set(false); MarkDirty($"{it.Title}: {opt.Label}"); Build(); };
+                    stack.Children.Add(oc);
+                }
                 border.Child = stack;
                 border.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is not CheckBox) it.ShowDetail?.Invoke(); };
                 panel.Children.Add(border);
@@ -488,14 +500,34 @@ public partial class MainWindow : Window
         {
             var ac = a;
             var skin = data.Skins.FirstOrDefault(s => s.Id == ac.DefaultSkinId);
-            items.Add(new CardItem
+            var category = "EPlaneCategory::" + ac.Category;
+            string WeaponName(string id) => data.Weapons.TryGetValue(id, out var w) ? w.ShortName : id.Replace("ELiveWeaponID::WID_", "");
+            var item = new CardItem
             {
                 Title = ac.Name, Sub = $"{ac.Category}  ·  {ac.Cost:N0} MRP", Image = skin?.Banner ?? ac.Icon, ImgW = 120, ImgH = 150, Decode = 240,
                 Group = ac.Category, SearchText = ac.Name + " " + ac.Nickname + " " + ac.ShortId,
                 Get = () => m.OwnedAircraft().ContainsKey(ac.Id),
-                Set = v => { m.SetOwnedAircraft(ac.Id, v); m.SetContains("UnlockedAircraftTreeNodeIDs", ac.Id, v, "NewlyUnlockedAircraftTreeNodeIDs"); },
-                ShowDetail = () => ShowDetailPanel(skin?.Banner ?? ac.Icon, 420, ac.Name, (L("Nickname"), ac.Nickname), (L("Category"), ac.Category), (L("Cost"), ac.Cost.ToString("N0") + " MRP"), ("ID", ac.Id.ToString()), (L("Flags in save"), m.OwnedAircraft().TryGetValue(ac.Id, out var f) ? f.ToString() : "-"), (L("Description"), ac.Description)),
-            });
+                Set = v =>
+                {
+                    m.SetOwnedAircraft(ac.Id, v);
+                    m.SetContains("UnlockedAircraftTreeNodeIDs", ac.Id, v, "NewlyUnlockedAircraftTreeNodeIDs");
+                    // Owning: the game gives the slot 1 weapon with the aircraft. Removing: the game keeps the record with no weapons.
+                    if (v && ac.SpWeapons.Count > 0) m.SetOwnedWeapon(ac.Id, ac.SpWeapons[0], true, category, data.WeaponOrder);
+                    if (!v) foreach (var w in m.OwnedWeapons(ac.Id)) m.SetOwnedWeapon(ac.Id, w, false);
+                },
+                ShowDetail = () => ShowDetailPanel(skin?.Banner ?? ac.Icon, 420, ac.Name, (L("Nickname"), ac.Nickname), (L("Category"), ac.Category), (L("Cost"), ac.Cost.ToString("N0") + " MRP"), ("ID", ac.Id.ToString()),
+                    (L("Copies owned (you + wingmen)"), m.OwnedAircraft().TryGetValue(ac.Id, out var f) ? $"{f} / 4" : "-"),
+                    (L("Special weapons"), string.Join("\n", ac.SpWeapons.Select((w, i) => $"SP{i + 1}: {(data.Weapons.TryGetValue(w, out var wi) ? wi.Name : w)}{(m.OwnedWeapons(ac.Id).Contains(w) ? "" : $" ({L("locked")})")}"))),
+                    (L("Description"), ac.Description)),
+            };
+            for (int i = 0; i < ac.SpWeapons.Count; i++)
+            {
+                var wid = ac.SpWeapons[i];
+                item.Options.Add(new CardOption($"SP{i + 1}  {WeaponName(wid)}", data.Weapons.TryGetValue(wid, out var wi) ? wi.Name : wid,
+                    () => m.OwnedWeapons(ac.Id).Contains(wid),
+                    v => m.SetOwnedWeapon(ac.Id, wid, v, category, data.WeaponOrder)));
+            }
+            items.Add(item);
         }
         SetFilterGroups(items.Select(i => i.Group));
         PageHost.Content = CardGrid(items, L("aircraft"));

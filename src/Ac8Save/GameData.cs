@@ -180,6 +180,10 @@ public sealed class GameData
                 Sort = I(r, "SortNumber"),
                 Icon = Image("aircraft", Asset(r, "PlaneIconFill")) ?? Image("aircraft", Asset(r, "PlaneIconBackGround")) ?? FindAircraftIcon(shortId),
                 DefaultSkinId = (uint)I(r, "DefaultSkinID"),
+                // Loaner aircraft for one mission, not sold in the tree: PP0024_f18f_ms01 (Mission 1), PP0013_a06e_ms15 (Mission 15).
+                // A DLC can add more. The _msNN suffix gives the mission number.
+                MissionOnly = B(r, "bNonCustomizable"),
+                LoanMission = Regex.Match(sid, @"_ms(\d+)$") is { Success: true } lm ? int.Parse(lm.Groups[1].Value) : 0,
                 Stats = new[] { I(r, "GraphAirToAir"), I(r, "GraphAirToGround"), I(r, "GraphSpeed"), I(r, "GraphMobility"), I(r, "GraphStability"), I(r, "GraphDefense") },
             });
         }
@@ -369,7 +373,7 @@ public sealed class GameData
 }
 
 public sealed class MedalInfo { public uint Id; public string Name = ""; public string Description = ""; public string Hint = ""; public string? Icon; public string? LockedIcon; }
-public sealed class AircraftInfo { public uint Id; public string StringId = ""; public string ShortId = ""; public string Name = ""; public string Nickname = ""; public string Description = ""; public string Category = ""; public long Cost; public long Sort; public string? Icon; public uint DefaultSkinId; public long[] Stats = Array.Empty<long>(); public List<string> SpWeapons = new(); }
+public sealed class AircraftInfo { public uint Id; public string StringId = ""; public string ShortId = ""; public string Name = ""; public string Nickname = ""; public string Description = ""; public string Category = ""; public long Cost; public long Sort; public string? Icon; public uint DefaultSkinId; public long[] Stats = Array.Empty<long>(); public List<string> SpWeapons = new(); public bool MissionOnly; public int LoanMission; }
 public sealed class WeaponInfo { public string Id = ""; public string Name = ""; public string ShortName = ""; public string Description = ""; }
 public sealed class SkinInfo { public uint Id; public string PlaneStringId = ""; public string Name = ""; public string Description = ""; public string Category = ""; public string? Icon; public string? Banner; public long Sort; public string Dlc = ""; }
 public sealed class EmblemInfo { public uint Id; public string Name = ""; public string Description = ""; public string Category = ""; public string? Icon; public long Sort; public bool Online; }

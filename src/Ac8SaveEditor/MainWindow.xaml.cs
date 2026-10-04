@@ -254,6 +254,7 @@ public partial class MainWindow : Window
         public Action? ShowDetail; public string SearchText = ""; public string Group = "";
         // Extra per-card switches. They are enabled only while the main switch is on.
         public List<CardOption> Options = new();
+        public string Warning = ""; public string WarningTip = "";
     }
 
     sealed record CardOption(string Label, string Tip, Func<bool> Get, Action<bool> Set);
@@ -284,6 +285,7 @@ public partial class MainWindow : Window
                 var title = Label(it.Title, 12, true); title.TextTrimming = TextTrimming.CharacterEllipsis; title.MaxHeight = 36;
                 stack.Children.Add(title);
                 if (it.Sub.Length > 0) { var sub = Muted(it.Sub, 11); sub.TextTrimming = TextTrimming.CharacterEllipsis; sub.MaxHeight = 32; stack.Children.Add(sub); }
+                if (it.Warning.Length > 0) { var warn = Muted(it.Warning, 11); warn.Foreground = Res("Bad"); warn.ToolTip = it.WarningTip; stack.Children.Add(warn); }
                 var chk = new CheckBox { Content = state ? L("Unlocked") : L("Locked"), IsChecked = state, Margin = new Thickness(0, 4, 0, 0), Foreground = state ? Res("Ok") : Res("Fg2") };
                 chk.Checked += (_, _) => { it.Set(true); MarkDirty(it.Title); Build(); };
                 chk.Unchecked += (_, _) => { it.Set(false); MarkDirty(it.Title); Build(); };
@@ -520,6 +522,11 @@ public partial class MainWindow : Window
                     (L("Special weapons"), string.Join("\n", ac.SpWeapons.Select((w, i) => $"SP{i + 1}: {(data.Weapons.TryGetValue(w, out var wi) ? wi.Name : w)}{(m.OwnedWeapons(ac.Id).Contains(w) ? "" : $" ({L("locked")})")}"))),
                     (L("Description"), ac.Description)),
             };
+            if (ac.MissionOnly)
+            {
+                item.Warning = L("Mission only, not in the aircraft tree");
+                item.WarningTip = ac.LoanMission > 0 ? string.Format(L("Loaned for Mission {0}. The aircraft tree does not sell it."), ac.LoanMission) : L("Loaned for one mission. The aircraft tree does not sell it.");
+            }
             for (int i = 0; i < ac.SpWeapons.Count; i++)
             {
                 var wid = ac.SpWeapons[i];

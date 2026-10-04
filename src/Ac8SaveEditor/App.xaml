@@ -13,6 +13,7 @@
         <SolidColorBrush x:Key="AccentDim" Color="#1E4C66"/>
         <SolidColorBrush x:Key="Ok" Color="#4CD17A"/>
         <SolidColorBrush x:Key="Warn" Color="#FFB347"/>
+        <SolidColorBrush x:Key="Bad" Color="#FF5C5C"/>
 
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource Panel2}"/>

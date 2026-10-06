@@ -307,7 +307,12 @@ public partial class MainWindow : Window
         refresh = Build;
         setAll = v =>
         {
-            foreach (var it in items) if (Visible(it)) it.Set(v);
+            foreach (var it in items)
+            {
+                if (!Visible(it)) continue;
+                it.Set(v);
+                if (v) foreach (var opt in it.Options) opt.Set(true);
+            }
             MarkDirty(v ? L("check all") : L("uncheck all"));
             Build();
         };

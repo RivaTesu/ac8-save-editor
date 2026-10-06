@@ -254,7 +254,7 @@ public partial class MainWindow : Window
         public Action? ShowDetail; public string SearchText = ""; public string Group = "";
         // Extra per-card switches. They are enabled only while the main switch is on.
         public List<CardOption> Options = new();
-        public string Warning = ""; public string WarningTip = "";
+        public string Warning = ""; public string WarningTip = ""; public bool SkipCheckAll;
     }
 
     sealed record CardOption(string Label, string Tip, Func<bool> Get, Action<bool> Set);
@@ -309,7 +309,7 @@ public partial class MainWindow : Window
         {
             foreach (var it in items)
             {
-                if (!Visible(it)) continue;
+                if (!Visible(it) || (v && it.SkipCheckAll)) continue;
                 it.Set(v);
                 if (v) foreach (var opt in it.Options) opt.Set(true);
             }
@@ -529,6 +529,7 @@ public partial class MainWindow : Window
             };
             if (ac.MissionOnly)
             {
+                item.SkipCheckAll = true;
                 item.Warning = L("Mission only, not in the aircraft tree");
                 item.WarningTip = ac.LoanMission > 0 ? string.Format(L("Loaned for Mission {0}. The aircraft tree does not sell it."), ac.LoanMission) : L("Loaned for one mission. The aircraft tree does not sell it.");
             }

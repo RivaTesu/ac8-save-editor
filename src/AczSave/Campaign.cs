@@ -57,7 +57,9 @@ public sealed class Campaign
         public int SelectedAircraft(int player) => BinaryPrimitives.ReadInt32LittleEndian(d.AsSpan(o + 580 + 4 * player));
         public void SetSelectedAircraft(int player, int ac) => BinaryPrimitives.WriteInt32LittleEndian(d.AsSpan(o + 580 + 4 * player), ac);
         public int SelectedColor(int player) => BinaryPrimitives.ReadInt32LittleEndian(d.AsSpan(o + 588 + 4 * player));
+        public void SetSelectedColor(int player, int color) => BinaryPrimitives.WriteInt32LittleEndian(d.AsSpan(o + 588 + 4 * player), color);
         public int SelectedWeapon(int player) => BinaryPrimitives.ReadInt32LittleEndian(d.AsSpan(o + 596 + 4 * player));
+        public void SetSelectedWeapon(int player, int w) => BinaryPrimitives.WriteInt32LittleEndian(d.AsSpan(o + 596 + 4 * player), w);
 
         public const int StatKills = 0, StatPixyKills = 1, StatPjKills = 2, StatSorties = 3, StatPixySorties = 4, StatPjSorties = 5,
             StatAirKills = 6, StatPixyAirKills = 7, StatPjAirKills = 8, StatGroundKills = 9, StatPixyGroundKills = 10, StatPjGroundKills = 11;
@@ -120,6 +122,8 @@ public sealed class Campaign
         public bool Destroyed(int i) => d[o + i] != 0;
         /// Shooting an ace down also sets its [NEW] marker in Assault Records (second 169-byte array); viewing the entry clears it.
         public void SetDestroyed(int i, bool v) { d[o + i] = (byte)(v ? 1 : 0); d[o + Count + i] = (byte)(v ? 1 : 0); }
+        public bool IsNew(int i) => d[o + Count + i] != 0;
+        public void SetNew(int i, bool v) => d[o + Count + i] = (byte)(v ? 1 : 0);
         public bool Medal(int i) => d[o + 338 + i] != 0;
         public void SetMedal(int i, bool v) => d[o + 338 + i] = (byte)(v ? 1 : 0);
     }
@@ -142,6 +146,13 @@ public sealed class Campaign
         public int GaugeAfter(int mission) => I(E(mission) + 12);
         public int Rank(int mission) => I(E(mission) + 16);
         public int Style(int mission) => d[E(mission) + 20];
+
+        public void SetAircraft(int mission, int v) => W(E(mission), v);
+        public void SetScore(int mission, int v) => W(E(mission) + 4, v);
+        public void SetTimeSeconds(int mission, int v) => W(E(mission) + 8, v);
+        public void SetGaugeAfter(int mission, int v) => W(E(mission) + 12, v);
+        public void SetRank(int mission, int v) => W(E(mission) + 16, v);
+        public void SetStyle(int mission, int v) => d[E(mission) + 20] = (byte)v;
 
         public void Set(int mission, int aircraft, int score, int timeSeconds, int gaugeAfter, int rank, int style)
         {

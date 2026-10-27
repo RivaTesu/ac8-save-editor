@@ -15,7 +15,7 @@ public partial class ZeroWindow : Window
     static readonly string[] LevelNames = { "Very Easy", "Easy", "Normal", "Hard", "Expert", "Ace" };
     static readonly string[] StyleNames = { "Mercenary", "Soldier", "Knight" };
     static readonly string[] RankNames = { "S", "A", "B", "C", "-" };
-    static readonly string[] ColorNames = { "Aircraft", "Color 1", "Color 2", "Color 3", "SP color" };
+    static readonly string[] ColorNames = { "Standard color", "Mercenary color", "Soldier color", "Knight color", "SP color" };
 
     sealed record AcInfo(int index, string code, string name, int order, int price, int[] weaponPrices, int[] stats,
         string? role = null, string? description = null, string? unlock = null, string[]? weapons = null, string? image = null, Dictionary<string, string>? colors = null);
@@ -61,7 +61,7 @@ public partial class ZeroWindow : Window
         BtnNone.Content = L("Uncheck all");
         LblSlot.Text = L("Slot:");
         LblDetailHint.Text = L("Select an item to see details.");
-        var navNames = new[] { "Overview", "Hangar", "Missions", "Medals", "Assault records" };
+        var navNames = new[] { "Overview", "Hangar", "Missions", "Campaign log", "Flight data", "Medals", "Assault records" };
         for (int i = 0; i < Nav.Items.Count; i++) ((ListBoxItem)Nav.Items[i]).Content = L(navNames[i]);
     }
 
@@ -258,6 +258,8 @@ public partial class ZeroWindow : Window
             case "overview": PageOverview(); break;
             case "hangar": PageHangar(); break;
             case "missions": PageMissions(); break;
+            case "log": PageCampaignLog(); break;
+            case "flight": PageFlightData(); break;
             case "medals": PageMedals(); break;
             case "aces": PageAces(); break;
         }
@@ -305,7 +307,7 @@ public partial class ZeroWindow : Window
         public Action? ShowDetail; public string SearchText = "";
         public List<CardOption> Options = new();
     }
-    sealed record CardOption(string Label, string Tip, Func<bool> Get, Action<bool> Set);
+    sealed record CardOption(string Label, string Tip, Func<bool> Get, Action<bool> Set, bool AlwaysOn = false);
 
     bool Visible(CardItem it) => search.Length == 0 || it.SearchText.Contains(search, StringComparison.OrdinalIgnoreCase) || it.Title.Contains(search, StringComparison.OrdinalIgnoreCase);
 
@@ -336,7 +338,7 @@ public partial class ZeroWindow : Window
                 foreach (var opt in it.Options)
                 {
                     bool optOn = opt.Get();
-                    var oc = new CheckBox { Content = opt.Label, ToolTip = opt.Tip, IsChecked = optOn, IsEnabled = state, FontSize = 11, Margin = new Thickness(0, 2, 0, 0), Foreground = optOn ? Res("Fg") : Res("Fg2") };
+                    var oc = new CheckBox { Content = opt.Label, ToolTip = opt.Tip, IsChecked = optOn, IsEnabled = state || opt.AlwaysOn, FontSize = 11, Margin = new Thickness(0, 2, 0, 0), Foreground = optOn ? Res("Fg") : Res("Fg2") };
                     oc.Checked += (_, _) => { opt.Set(true); MarkDirty($"{it.Title}: {opt.Label}"); Build(); };
                     oc.Unchecked += (_, _) => { opt.Set(false); MarkDirty($"{it.Title}: {opt.Label}"); Build(); };
                     stack.Children.Add(oc);
@@ -415,9 +417,30 @@ public partial class ZeroWindow : Window
         NumField(L("Current mission (1-18, 19 = after ending)"), c.CurrentMission + 1, v => c.CurrentMission = (int)Math.Clamp(v - 1, 0, 18));
         NumField(L("Ace style gauge (< -40 Mercenary, -40..40 Soldier, > 40 Knight)"), c.AceStyleGauge, v => c.AceStyleGauge = (int)Math.Clamp(v, -999, 999));
 
+        var timeRow = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
+        var tl = Muted(L("Play time (h:mm:ss)")); tl.Width = 220; timeRow.Children.Add(tl);
+        var ttb = new TextBox { Text = FormatTime(t), Width = 120 };
+        var tbtn = new Button { Content = L("Apply"), Margin = new Thickness(8, 0, 0, 0) };
+        tbtn.Click += (_, _) => { if (TryParseTime(ttb.Text, out var secs)) { var rec = c.Records; rec.PlayTimeSeconds = secs; MarkDirty(L("Play time")); ShowPage("overview"); } };
+        timeRow.Children.Add(ttb); timeRow.Children.Add(tbtn);
+        panel.Children.Add(timeRow);
+
+        var selRow = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
+        var sl = Muted(L("Aircraft in the hangar slot")); sl.Width = 220; selRow.Children.Add(sl);
+        var ownedList = aircraft.OrderBy(a => a.order).Where(a => p.Owned(a.index) || a.index == p.SelectedAircraft(0)).ToList();
+        var selCb = new ComboBox { Width = 220, HorizontalAlignment = HorizontalAlignment.Left, ItemsSource = ownedList.Select(a => a.name).ToList(), SelectedIndex = ownedList.FindIndex(a => a.index == p.SelectedAircraft(0)) };
+        selCb.SelectionChanged += (_, _) =>
+        {
+            if (selCb.SelectedIndex < 0) return;
+            p.SetSelectedAircraft(0, ownedList[selCb.SelectedIndex].index); p.SetSelectedColor(0, 0); p.SetSelectedWeapon(0, 0);
+            MarkDirty(L("Aircraft in the hangar slot"));
+        };
+        selRow.Children.Add(selCb);
+        panel.Children.Add(selRow);
+
         var lvlRow = new DockPanel { Margin = new Thickness(0, 3, 0, 3) };
         var ll = Muted(L("Difficulty")); ll.Width = 220; lvlRow.Children.Add(ll);
-        var cb = new ComboBox { Width = 160, ItemsSource = LevelNames.Select(L).ToList(), SelectedIndex = Math.Clamp(c.FreeMissionLevel, 0, 5) };
+        var cb = new ComboBox { Width = 160, HorizontalAlignment = HorizontalAlignment.Left, ItemsSource = LevelNames.Select(L).ToList(), SelectedIndex = Math.Clamp(c.FreeMissionLevel, 0, 5) };
         cb.SelectionChanged += (_, _) => { if (cb.SelectedIndex >= 0) { c.FreeMissionLevel = cb.SelectedIndex; MarkDirty(L("difficulty")); } };
         lvlRow.Children.Add(cb);
         panel.Children.Add(lvlRow);
@@ -446,6 +469,13 @@ public partial class ZeroWindow : Window
             MarkDirty(L("all missions S")); ShowPage("overview");
         };
         panel.Children.Add(btnS);
+        var btnSeen = new Button { Content = L("Clear every [NEW] marker in Assault Records"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 4, 0, 0) };
+        btnSeen.Click += (_, _) =>
+        {
+            for (int i = 0; i < Campaign.Rival.Count; i++) c.Rivals.SetNew(i, false);
+            MarkDirty(L("[NEW] markers")); ShowPage("overview");
+        };
+        panel.Children.Add(btnSeen);
         panel.Children.Add(Muted(L("Mission scores and times are kept as they are. Set them per mission on the Missions page.")));
         PageHost.Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = panel };
     }
@@ -465,12 +495,14 @@ public partial class ZeroWindow : Window
                 Get = () => p.Owned(i, 0),
                 Set = v => { p.SetOwned(i, 0, v); if (v) { p.SetUnlocked(i, 0, true); p.SetWeaponAvailable(i, 0, true); p.SetWeaponOwned(i, 0, true); } else for (int k = 1; k < Campaign.Aircraft.ColorSlots; k++) p.SetOwned(i, k, false); },
             };
+            it.Options.Add(new CardOption(L("Unlocked in shop"), L("Listed in the shop; the game sets this when a mission unlocks the aircraft"),
+                () => p.Unlocked(i, 0), v => { p.SetUnlocked(i, 0, v); if (v) for (int w = 0; w < Campaign.Aircraft.WeaponSlots; w++) p.SetWeaponAvailable(i, w, true); }, true));
             for (int k = 1; k < Campaign.Aircraft.ColorSlots; k++)
             {
                 int kk = k;
-                it.Options.Add(new CardOption(L(ColorNames[k]), L("Owned color scheme"), () => p.Owned(i, kk), v => { p.SetOwned(i, kk, v); if (v) p.SetUnlocked(i, kk, true); }));
+                it.Options.Add(new CardOption(L(ColorNames[k]), L("Owned color scheme"), () => p.Owned(i, kk) && p.Unlocked(i, kk), v => { p.SetOwned(i, kk, v); if (v) p.SetUnlocked(i, kk, true); }));
             }
-            for (int w = 1; w < Campaign.Aircraft.WeaponSlots; w++)
+            for (int w = 0; w < Campaign.Aircraft.WeaponSlots; w++)
             {
                 int ww = w;
                 var wname = ac.weapons != null && ac.weapons.Length > w && ac.weapons[w].Length > 0 ? $"SP{w + 1} {ac.weapons[w]}" : $"SP{w + 1}";
@@ -516,7 +548,11 @@ public partial class ZeroWindow : Window
         if (ac.weapons != null)
             Row(L("Special weapons"), string.Join(Environment.NewLine, ac.weapons.Select((w, k) => $"SP{k + 1}: {w}" + (k > 0 && k - 1 < ac.weaponPrices.Length ? $"  ({ac.weaponPrices[k - 1]:N0} cr)" : "") + (p.WeaponOwned(i, k) ? "" : $"  - {L("not owned")}"))));
         Row(L("How to unlock"), ac.unlock);
-        Row(L("Kills"), p.Stat(0, i).ToString());
+        int allSorties = Enumerable.Range(0, Campaign.Aircraft.Count).Sum(a => p.Stat(Campaign.Aircraft.StatSorties, a));
+        int sorties = p.Stat(Campaign.Aircraft.StatSorties, i);
+        Row(L("Sorties"), sorties.ToString());
+        Row(L("Usage"), allSorties > 0 ? $"{100.0 * sorties / allSorties:0.00}%" : "0.00%");
+        Row(L("Targets destroyed (air + ground)"), $"{p.Stat(Campaign.Aircraft.StatKills, i)} ({p.Stat(Campaign.Aircraft.StatAirKills, i)} + {p.Stat(Campaign.Aircraft.StatGroundKills, i)})");
 
         if (ac.colors != null && ac.colors.Count > 1)
         {
@@ -590,11 +626,221 @@ public partial class ZeroWindow : Window
             txt.Children.Add(styles);
             stack.Children.Add(txt);
             card.Child = stack;
-            card.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is TextBlock or Border or Image) ShowDetailPanel(mi.title.Length > 0 ? mi.title : null, 280, $"{L("Mission")} {mi.number} {mi.name}", (L("Index"), m.ToString())); };
+            card.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is TextBlock or Border or Image) ShowMissionDetail(mi); };
             list.Children.Add(card);
         }
         list.Children.Insert(0, Muted(L("Per difficulty and ace style: cleared, rank, best time (s), best score. Empty = no record.")));
         PageHost.Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = list };
+    }
+
+    static string FormatTime(uint t) => $"{t / 3600}:{t / 60 % 60:00}:{t % 60:00}";
+
+    static bool TryParseTime(string text, out uint seconds)
+    {
+        seconds = 0;
+        var parts = text.Trim().Split(':');
+        if (parts.Length is < 1 or > 3) return false;
+        uint total = 0;
+        foreach (var part in parts)
+        {
+            if (!uint.TryParse(part, out var v)) return false;
+            total = total * 60 + v;
+        }
+        seconds = total;
+        return true;
+    }
+
+    TextBox IntBox(int value, string tip, Action<int> set, double width = 0)
+    {
+        var tb = new TextBox { Text = value.ToString(), ToolTip = tip, Margin = new Thickness(2, 1, 2, 1) };
+        if (width > 0) tb.Width = width;
+        tb.LostFocus += (_, _) =>
+        {
+            if (!int.TryParse(tb.Text, out var v)) { tb.Text = value.ToString(); return; }
+            if (v == value) return;
+            value = v; set(v); MarkDirty(tip);
+        };
+        return tb;
+    }
+
+    static ScrollViewer Wide(UIElement table)
+    {
+        var sv = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = table };
+        // A nested ScrollViewer eats the wheel even when it cannot scroll vertically; hand it to the page.
+        sv.PreviewMouseWheel += (o, e) =>
+        {
+            if (sv.Parent is not UIElement parent) return;
+            e.Handled = true;
+            parent.RaiseEvent(new System.Windows.Input.MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = UIElement.MouseWheelEvent, Source = o });
+        };
+        return sv;
+    }
+
+    static TextBlock Cell(string text, bool header = false)
+    {
+        var t = header ? Muted(text, 11) : Label(text, 12);
+        t.VerticalAlignment = VerticalAlignment.Center;
+        t.Margin = new Thickness(4, 1, 8, 1);
+        return t;
+    }
+
+    void ShowMissionDetail(MissionInfo mi)
+    {
+        var rec = cm!.Records;
+        int m = mi.index;
+        Detail.Children.Clear();
+        if (mi.title.Length > 0) { var img = ImageBox(mi.title, 320, 280, 0); img.HorizontalAlignment = HorizontalAlignment.Left; Detail.Children.Add(img); }
+        Detail.Children.Add(Label($"{L("Mission")} {mi.number} {mi.name}", 16, true));
+        Detail.Children.Add(Muted(L("Best three results (time ascending). Empty = no record.")));
+        var lvl = new ComboBox { ItemsSource = LevelNames.Select(L).ToList(), SelectedIndex = Math.Clamp(cm.FreeMissionLevel, 0, 5), Margin = new Thickness(0, 4, 0, 2) };
+        var sty = new ComboBox { ItemsSource = StyleNames.Select(L).ToList(), SelectedIndex = Math.Clamp(MissionResult.ClassOf(cm.AceStyleGauge), 0, 2), Margin = new Thickness(0, 2, 0, 4) };
+        var host = new StackPanel();
+        void Build()
+        {
+            host.Children.Clear();
+            int l = lvl.SelectedIndex, st = sty.SelectedIndex;
+            if (l < 0 || st < 0) return;
+            var g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            g.RowDefinitions.Add(new RowDefinition());
+            var h1 = Cell(L("Time (s)"), true); Grid.SetColumn(h1, 1); g.Children.Add(h1);
+            var h2 = Cell(L("Score"), true); Grid.SetColumn(h2, 2); g.Children.Add(h2);
+            for (int i = 0; i < 3; i++)
+            {
+                int ii = i;
+                g.RowDefinitions.Add(new RowDefinition());
+                var n = Cell($"#{i + 1}", true); Grid.SetRow(n, i + 1); g.Children.Add(n);
+                uint time = rec.Time(l, m, st, i), score = rec.Score(l, m, st, i);
+                var tb = new TextBox { Text = time == uint.MaxValue ? "" : time.ToString(), ToolTip = L("Time (s)"), Margin = new Thickness(2) };
+                var sb = new TextBox { Text = score == uint.MaxValue ? "" : score.ToString(), ToolTip = L("Score"), Margin = new Thickness(2) };
+                tb.LostFocus += (_, _) => { if (tb.Text.Length == 0) rec.SetTime(l, m, st, ii, uint.MaxValue); else if (uint.TryParse(tb.Text, out var v)) rec.SetTime(l, m, st, ii, v); MarkDirty($"M{mi.number} #{ii + 1}"); };
+                sb.LostFocus += (_, _) => { if (sb.Text.Length == 0) rec.SetScore(l, m, st, ii, uint.MaxValue); else if (uint.TryParse(sb.Text, out var v)) rec.SetScore(l, m, st, ii, v); MarkDirty($"M{mi.number} #{ii + 1}"); };
+                Grid.SetRow(tb, i + 1); Grid.SetColumn(tb, 1); g.Children.Add(tb);
+                Grid.SetRow(sb, i + 1); Grid.SetColumn(sb, 2); g.Children.Add(sb);
+            }
+            host.Children.Add(g);
+        }
+        lvl.SelectionChanged += (_, _) => Build();
+        sty.SelectionChanged += (_, _) => Build();
+        Detail.Children.Add(Muted(L("Difficulty"), 11)); Detail.Children.Add(lvl);
+        Detail.Children.Add(Muted(L("Ace style"), 11)); Detail.Children.Add(sty);
+        Detail.Children.Add(host);
+        Build();
+    }
+
+    void PageCampaignLog()
+    {
+        var c = cm!; var log = c.Progress;
+        var panel = new StackPanel();
+        var intro = Muted(L("One row per finished campaign mission, as the ending credits list them. Clearing a mission in the game overwrites its row.")); intro.MaxWidth = 760; intro.HorizontalAlignment = HorizontalAlignment.Left;
+        panel.Children.Add(intro);
+        var start = new DockPanel { Margin = new Thickness(0, 6, 0, 6) };
+        var sl = Muted(L("Starting ace style gauge")); sl.Width = 220; start.Children.Add(sl);
+        var startBox = IntBox(log.StartGauge, L("Starting ace style gauge"), v => log.StartGauge = v, 80); startBox.HorizontalAlignment = HorizontalAlignment.Left;
+        start.Children.Add(startBox);
+        panel.Children.Add(start);
+
+        var names = aircraft.OrderBy(a => a.index).Select(a => a.name).ToList();
+        var g = new Grid();
+        string[] heads = { "Mission", "Aircraft", "Score", "Time (s)", "Gauge after", "Rank", "Style" };
+        double[] widths = { 0, 200, 90, 80, 80, 60, 120 };
+        for (int k = 0; k < heads.Length; k++) g.ColumnDefinitions.Add(new ColumnDefinition { Width = widths[k] == 0 ? GridLength.Auto : new GridLength(widths[k]) });
+        g.RowDefinitions.Add(new RowDefinition());
+        for (int k = 0; k < heads.Length; k++) { var h = Cell(L(heads[k]), true); Grid.SetColumn(h, k); g.Children.Add(h); }
+        foreach (var mi in missions)
+        {
+            int m = mi.index, row = m + 1;
+            g.RowDefinitions.Add(new RowDefinition());
+            var name = Cell($"{mi.number} {mi.name}"); name.ToolTip = name.Text; Grid.SetRow(name, row); g.Children.Add(name);
+            if (m >= c.CurrentMission && log.Aircraft(m) == 0 && log.Score(m) == 0 && log.TimeSeconds(m) == 0)
+            {
+                var none = Cell(L("not played yet"), true); Grid.SetRow(none, row); Grid.SetColumn(none, 1); Grid.SetColumnSpan(none, 6); g.Children.Add(none);
+                continue;
+            }
+            var ac = new ComboBox { ItemsSource = names, SelectedIndex = Math.Clamp(log.Aircraft(m), 0, names.Count - 1), Margin = new Thickness(2, 1, 2, 1) };
+            ac.SelectionChanged += (_, _) => { if (ac.SelectedIndex >= 0) { log.SetAircraft(m, ac.SelectedIndex); MarkDirty($"M{mi.number} {L("Aircraft")}"); } };
+            var rank = new ComboBox { ItemsSource = RankNames.Take(4).ToList(), SelectedIndex = Math.Clamp(log.Rank(m), 0, 3), Margin = new Thickness(2, 1, 2, 1) };
+            rank.SelectionChanged += (_, _) => { if (rank.SelectedIndex >= 0) { log.SetRank(m, rank.SelectedIndex); MarkDirty($"M{mi.number} {L("Rank")}"); } };
+            var style = new ComboBox { ItemsSource = StyleNames.Select(L).ToList(), SelectedIndex = Math.Clamp(log.Style(m), 0, 2), Margin = new Thickness(2, 1, 2, 1) };
+            style.SelectionChanged += (_, _) => { if (style.SelectedIndex >= 0) { log.SetStyle(m, style.SelectedIndex); MarkDirty($"M{mi.number} {L("Style")}"); } };
+            UIElement[] cells =
+            {
+                ac,
+                IntBox(log.Score(m), $"M{mi.number} {L("Score")}", v => log.SetScore(m, v)),
+                IntBox(log.TimeSeconds(m), $"M{mi.number} {L("Time (s)")}", v => log.SetTimeSeconds(m, v)),
+                IntBox(log.GaugeAfter(m), $"M{mi.number} {L("Gauge after")}", v => log.SetGaugeAfter(m, v)),
+                rank, style,
+            };
+            for (int k = 0; k < cells.Length; k++) { Grid.SetRow(cells[k], row); Grid.SetColumn(cells[k], k + 1); g.Children.Add(cells[k]); }
+        }
+        panel.Children.Add(Wide(g));
+        PageHost.Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = panel };
+    }
+
+    void PageFlightData()
+    {
+        var c = cm!; var p = c.Planes;
+        var panel = new StackPanel();
+        var totals = new TextBlock { Foreground = Res("Fg"), FontSize = 13, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 8) };
+        int Sum(int table) => Enumerable.Range(0, Campaign.Aircraft.Count).Sum(a => p.Stat(table, a));
+        void UpdateTotals()
+        {
+            int player = Sum(Campaign.Aircraft.StatKills), pixy = Sum(Campaign.Aircraft.StatPixyKills), pj = Sum(Campaign.Aircraft.StatPjKills);
+            totals.Text = $"{L("Total flight time")}: {FormatTime(c.Records.PlayTimeSeconds)}    {L("Total targets destroyed")}: {player + pixy + pj}" + Environment.NewLine +
+                $"{L("Player")}: {player} ({Sum(Campaign.Aircraft.StatAirKills)} + {Sum(Campaign.Aircraft.StatGroundKills)}), {L("Sorties")} {Sum(Campaign.Aircraft.StatSorties)}    " +
+                $"Pixy: {pixy} ({Sum(Campaign.Aircraft.StatPixyAirKills)} + {Sum(Campaign.Aircraft.StatPixyGroundKills)}), {L("Sorties")} {Sum(Campaign.Aircraft.StatPixySorties)}    " +
+                $"PJ: {pj} ({Sum(Campaign.Aircraft.StatPjAirKills)} + {Sum(Campaign.Aircraft.StatPjGroundKills)}), {L("Sorties")} {Sum(Campaign.Aircraft.StatPjSorties)}";
+        }
+        var intro = Muted(L("Per-aircraft counters behind Ace Style > Flight Data and the hangar's Aircraft Data. Targets destroyed is air + ground and updates on its own. Usage is the aircraft's share of all player sorties. The game does not store flight time per aircraft.")); intro.MaxWidth = 760; intro.HorizontalAlignment = HorizontalAlignment.Left;
+        panel.Children.Add(intro);
+        panel.Children.Add(totals);
+
+        Grid Table(string title, int sortiesT, int airT, int groundT, int killsT, bool usage)
+        {
+            var g = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+            string[] heads = usage ? new[] { "Aircraft", "Sorties", "Air", "Ground", "Targets destroyed", "Usage" } : new[] { "Aircraft", "Sorties", "Air", "Ground", "Targets destroyed" };
+            double[] widths = { 220, 80, 80, 80, 120, 80 };
+            for (int k = 0; k < heads.Length; k++) g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(widths[k]) });
+            g.RowDefinitions.Add(new RowDefinition());
+            for (int k = 0; k < heads.Length; k++) { var h = Cell(L(heads[k]), true); Grid.SetColumn(h, k); g.Children.Add(h); }
+            var usageCells = new List<(int ac, TextBlock cell)>();
+            void RefreshUsage()
+            {
+                int all = Sum(sortiesT);
+                foreach (var (ac, cell) in usageCells) cell.Text = all > 0 ? $"{100.0 * p.Stat(sortiesT, ac) / all:0.00}%" : "0.00%";
+            }
+            int row = 1;
+            foreach (var ac in aircraft.OrderBy(a => a.order))
+            {
+                int i = ac.index;
+                g.RowDefinitions.Add(new RowDefinition());
+                var name = Cell(ac.name); Grid.SetRow(name, row); g.Children.Add(name);
+                var kills = Cell(p.Stat(killsT, i).ToString());
+                void Recount() { p.SetStat(killsT, i, p.Stat(airT, i) + p.Stat(groundT, i)); kills.Text = p.Stat(killsT, i).ToString(); UpdateTotals(); }
+                var sorties = IntBox(p.Stat(sortiesT, i), $"{ac.name} {title} {L("Sorties")}", v => { p.SetStat(sortiesT, i, Math.Max(0, v)); RefreshUsage(); UpdateTotals(); });
+                var air = IntBox(p.Stat(airT, i), $"{ac.name} {title} {L("Air")}", v => { p.SetStat(airT, i, Math.Max(0, v)); Recount(); });
+                var ground = IntBox(p.Stat(groundT, i), $"{ac.name} {title} {L("Ground")}", v => { p.SetStat(groundT, i, Math.Max(0, v)); Recount(); });
+                UIElement[] cells = { sorties, air, ground, kills };
+                for (int k = 0; k < cells.Length; k++) { Grid.SetRow(cells[k], row); Grid.SetColumn(cells[k], k + 1); g.Children.Add(cells[k]); }
+                if (usage) { var u = Cell(""); Grid.SetRow(u, row); Grid.SetColumn(u, 5); g.Children.Add(u); usageCells.Add((i, u)); }
+                row++;
+            }
+            RefreshUsage();
+            return g;
+        }
+
+        panel.Children.Add(Label(L("Player"), 15, true));
+        panel.Children.Add(Wide(Table(L("Player"), Campaign.Aircraft.StatSorties, Campaign.Aircraft.StatAirKills, Campaign.Aircraft.StatGroundKills, Campaign.Aircraft.StatKills, true)));
+        panel.Children.Add(Label("Pixy", 15, true));
+        panel.Children.Add(Muted(L("Indexed by the wingman's aircraft. Pixy flies campaign missions 1-12.")));
+        panel.Children.Add(Wide(Table("Pixy", Campaign.Aircraft.StatPixySorties, Campaign.Aircraft.StatPixyAirKills, Campaign.Aircraft.StatPixyGroundKills, Campaign.Aircraft.StatPixyKills, false)));
+        panel.Children.Add(Label("PJ", 15, true));
+        panel.Children.Add(Muted(L("Indexed by the wingman's aircraft. PJ flies campaign missions 13-17.")));
+        panel.Children.Add(Wide(Table("PJ", Campaign.Aircraft.StatPjSorties, Campaign.Aircraft.StatPjAirKills, Campaign.Aircraft.StatPjGroundKills, Campaign.Aircraft.StatPjKills, false)));
+        UpdateTotals();
+        PageHost.Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Content = panel };
     }
 
     void PageMedals()
@@ -627,6 +873,7 @@ public partial class ZeroWindow : Window
                 Title = $"{L("Ace")} {i + 1}", Sub = rv.fate, SearchText = rv.bio + " " + rv.fate,
                 Get = () => c.Rivals.Destroyed(i), Set = v => c.Rivals.SetDestroyed(i, v),
             };
+            it.Options.Add(new CardOption(L("[NEW] marker"), L("Shown in Assault Records until the entry is opened"), () => c.Rivals.IsNew(i), v => c.Rivals.SetNew(i, v)));
             it.ShowDetail = () => ShowDetailPanel(null, 0, $"{L("Ace")} {i + 1}", (L("Record"), rv.fate), (L("Profile"), rv.bio), (L("Index"), i.ToString()));
             items.Add(it);
         }

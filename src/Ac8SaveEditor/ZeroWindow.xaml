@@ -26,6 +26,8 @@
                 <ListBoxItem Tag="overview">Overview</ListBoxItem>
                 <ListBoxItem Tag="hangar">Hangar</ListBoxItem>
                 <ListBoxItem Tag="missions">Missions</ListBoxItem>
+                <ListBoxItem Tag="log">Campaign log</ListBoxItem>
+                <ListBoxItem Tag="flight">Flight data</ListBoxItem>
                 <ListBoxItem Tag="medals">Medals</ListBoxItem>
                 <ListBoxItem Tag="aces">Assault records</ListBoxItem>
             </ListBox>

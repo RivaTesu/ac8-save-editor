@@ -25,7 +25,7 @@ The "ACE COMBAT ZERO..." button opens a second editor for the PC port's `save.sa
 - Missions: cleared flag, rank, best time and score for each mission, difficulty and ace style. Click a mission to edit all three best results.
 - Campaign log: aircraft, score, time, gauge, rank and style for each finished mission, as the ending credits show them.
 - Flight data: sorties and air and ground kills per aircraft for you, Pixy and PJ, behind Ace Style > Flight Data and the hangar's Aircraft Data. The game keeps no flight time per aircraft; usage comes from sorties.
-- Medals and assault records (169 aces) with the in-game text, including the [NEW] marker on each ace.
+- Medals and assault records (169 aces) with the in-game text. An ace you mark as shot down shows [NEW] in the game until you open its entry, the same as after a real kill.
 
 Each save writes a backup to `backup_ac8edit` next to `save.sav`. The format is in [docs/acz-save-format.md](docs/acz-save-format.md). Aircraft screenshots, descriptions and weapon names come from the [Ace Combat Wiki](https://acecombat.fandom.com/wiki/Ace_Combat_Zero:_The_Belkan_War/Aircraft) (CC BY-SA). Mission titles, prices and stats come from the game files. All of it ships in `assets-acz.zip`, which goes next to the exe.
 

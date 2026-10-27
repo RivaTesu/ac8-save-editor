@@ -55,7 +55,7 @@ An empty slot entry has mission == -1. An empty slot body has dword[0] == 0x13 a
 | 0 | 20 | [0] current mission (0..18), [4] stage id picked by the briefing (-1 = not picked), [8] style class, [12] mission type (0 fixed stage, 1 stage by ace style, 2 player-picked branch), [16] ace style gauge (int; < -40 Mercenary, -40..40 Soldier, > 40 Knight) |
 | 148 | 56 | [0] difficulty (0..5) |
 | 332 | 2332 | CPropertyAircraft |
-| 3240 | 360 | CPropertyRival: u8 aces destroyed[169] at +0, u8 new marker[169] at +169 (set with +0, shown as [NEW] in Assault Records until viewed), u8 medals[20] at +338 |
+| 3240 | 360 | CPropertyRival: u8 aces destroyed[169] at +0, u8 new marker[169] at +169 (set with +0 on a kill; the Assault Records screen shows [NEW] and clears the byte when the entry is opened, acz.exe 0x7FF7801F0140), u8 medals[20] at +338 |
 | 6304 | 21196 | CPropertyRecord |
 | 27804 | 480 | CPropertyCampaignRecord |
 | 28588 | 48 | CPropertyUnlock: bit sets of the last mission result (41 bytes used) |

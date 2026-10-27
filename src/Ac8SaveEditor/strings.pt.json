@@ -216,7 +216,6 @@
   "Per-aircraft counters behind Ace Style > Flight Data and the hangar's Aircraft Data. Targets destroyed is air + ground and updates on its own. Usage is the aircraft's share of all player sorties. The game does not store flight time per aircraft.": "Contadores por avião usados em Ace Style > Flight Data e no Aircraft Data do hangar. Alvos destruídos é ar + solo e atualiza sozinho. Uso é a fração das surtidas do jogador feitas com o avião. O jogo não guarda tempo de voo por avião.",
   "Play time (h:mm:ss)": "Tempo de jogo (h:mm:ss)",
   "Player": "Jogador",
-  "Shown in Assault Records until the entry is opened": "Aparece nos registros de ases até a entrada ser aberta",
   "Sorties": "Surtidas",
   "Starting ace style gauge": "Ace style gauge inicial",
   "Style": "Estilo",
@@ -225,7 +224,6 @@
   "Total flight time": "Tempo total de voo",
   "Total targets destroyed": "Total de alvos destruídos",
   "Usage": "Uso",
-  "[NEW] marker": "Marca [NEW]",
   "[NEW] markers": "marcas [NEW]",
   "not played yet": "ainda não jogada"
 }

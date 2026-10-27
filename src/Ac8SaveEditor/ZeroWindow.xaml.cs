@@ -873,7 +873,6 @@ public partial class ZeroWindow : Window
                 Title = $"{L("Ace")} {i + 1}", Sub = rv.fate, SearchText = rv.bio + " " + rv.fate,
                 Get = () => c.Rivals.Destroyed(i), Set = v => c.Rivals.SetDestroyed(i, v),
             };
-            it.Options.Add(new CardOption(L("[NEW] marker"), L("Shown in Assault Records until the entry is opened"), () => c.Rivals.IsNew(i), v => c.Rivals.SetNew(i, v)));
             it.ShowDetail = () => ShowDetailPanel(null, 0, $"{L("Ace")} {i + 1}", (L("Record"), rv.fate), (L("Profile"), rv.bio), (L("Index"), i.ToString()));
             items.Add(it);
         }

@@ -24,11 +24,18 @@ public partial class MainWindow : Window
         var dlg = new Microsoft.Win32.OpenFolderDialog { Title = L("Select the SaveGames folder"), InitialDirectory = Directory.Exists(SaveDir) ? SaveDir : Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) };
         if (dlg.ShowDialog() != true) return;
         if (dirty && MessageBox.Show(L("Discard unsaved changes?"), "AC8", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+        if (File.Exists(Path.Combine(dlg.FolderName, "save.sav")) && !File.Exists(Path.Combine(dlg.FolderName, "Campaign.sav")))
+        {
+            new ZeroWindow(Path.Combine(dlg.FolderName, "save.sav")).Show();
+            return;
+        }
         SaveDir = dlg.FolderName;
         try { Directory.CreateDirectory(Path.GetDirectoryName(SaveDirFile)!); File.WriteAllText(SaveDirFile, SaveDir); } catch { }
         LoadSaves();
         ShowPage(page);
     }
+
+    void Zero_Click(object s, RoutedEventArgs e) => new ZeroWindow().Show();
 
     static readonly string[] DifficultyNames = { "None", "Casual", "Easy", "Normal", "Hard", "Ace", "FreeFlight" };
     static readonly string[] DiffKeys = { "", "CampaignDifficulty_Select_VeryEasy", "CampaignDifficulty_Select_Easy", "CampaignDifficulty_Select_Normal", "CampaignDifficulty_Select_Hard", "CampaignDifficulty_Select_Ace" };

@@ -1,0 +1,60 @@
+<Window x:Class="Ac8SaveEditor.ZeroWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AC Zero Save Editor" Icon="app.ico" Height="860" Width="1400" MinWidth="1000" MinHeight="600"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Fg}" FontFamily="Segoe UI" FontSize="13" WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="14,8">
+            <DockPanel>
+                <TextBlock Text="ACE COMBAT ZERO" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Foreground="{StaticResource Accent}"/>
+                <TextBlock Text="Save Editor" FontSize="16" VerticalAlignment="Center" Margin="8,0,20,0" Foreground="{StaticResource Fg2}"/>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <TextBlock Name="LblSlot" Text="Slot:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource Fg2}"/>
+                    <ComboBox Name="CmbSlot" Width="150" Margin="0,0,12,0" VerticalAlignment="Center" SelectionChanged="Slot_Changed"/>
+                    <Button Name="BtnBrowse" Click="Browse_Click" Margin="0,0,8,0">Save file...</Button>
+                    <Button Name="BtnReload" Click="Reload_Click" Margin="0,0,8,0">Reload</Button>
+                    <Button Name="BtnSave" Click="Save_Click" Style="{StaticResource Primary}" IsEnabled="False">Save (with backup)</Button>
+                </StackPanel>
+                <TextBlock Name="LblFile" VerticalAlignment="Center" Foreground="{StaticResource Fg2}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="0,1,0,0" Padding="14,5">
+            <TextBlock Name="LblStatus" Foreground="{StaticResource Fg2}" TextWrapping="Wrap"/>
+        </Border>
+        <Border DockPanel.Dock="Left" Width="210" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,1,0">
+            <ListBox Name="Nav" SelectionChanged="Nav_SelectionChanged" ItemContainerStyle="{StaticResource NavItem}">
+                <ListBoxItem Tag="overview">Overview</ListBoxItem>
+                <ListBoxItem Tag="hangar">Hangar</ListBoxItem>
+                <ListBoxItem Tag="missions">Missions</ListBoxItem>
+                <ListBoxItem Tag="medals">Medals</ListBoxItem>
+                <ListBoxItem Tag="aces">Assault records</ListBoxItem>
+            </ListBox>
+        </Border>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="360"/>
+            </Grid.ColumnDefinitions>
+            <DockPanel Grid.Column="0" Margin="14,10,6,10">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <TextBlock Name="LblPageTitle" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                        <TextBlock Name="LblSearch" Text="Search:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource Fg2}"/>
+                        <TextBox Name="TxtSearch" Width="220" TextChanged="Search_TextChanged"/>
+                        <Button Name="BtnAll" Click="CheckAll_Click" Margin="8,0,0,0">Check all</Button>
+                        <Button Name="BtnNone" Click="UncheckAll_Click" Margin="6,0,0,0">Uncheck all</Button>
+                    </StackPanel>
+                    <TextBlock Name="LblPageInfo" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{StaticResource Fg2}"/>
+                </DockPanel>
+                <ContentControl Name="PageHost"/>
+            </DockPanel>
+            <Border Grid.Column="1" Background="{StaticResource Panel}" BorderBrush="{StaticResource Border}" BorderThickness="1,0,0,0" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Name="Detail">
+                        <TextBlock Name="LblDetailHint" Text="Select an item to see details." Foreground="{StaticResource Fg2}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -13,6 +13,7 @@
                         <ComboBoxItem>English</ComboBoxItem>
                         <ComboBoxItem>Português</ComboBoxItem>
                     </ComboBox>
+                    <Button Name="BtnZero" Click="Zero_Click" Margin="0,0,8,0">ACE COMBAT ZERO...</Button>
                     <Button Name="BtnBrowse" Click="Browse_Click" Margin="0,0,8,0">Save folder...</Button>
                     <Button Name="BtnReload" Click="Reload_Click" Margin="0,0,8,0">Recarregar</Button>
                     <Button Name="BtnSave" Click="Save_Click" Style="{StaticResource Primary}" IsEnabled="False">Salvar (com backup)</Button>

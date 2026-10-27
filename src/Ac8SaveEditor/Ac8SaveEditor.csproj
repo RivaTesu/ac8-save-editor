@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Ac8Save\Ac8Save.csproj" />
+    <ProjectReference Include="..\AczSave\AczSave.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -11,7 +12,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>Ac8SaveEditor</AssemblyName>
-    <Version>1.0.2</Version>
+    <Version>1.1.0</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>false</InvariantGlobalization>
@@ -22,5 +23,6 @@
     <None Include="enums.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="strings.pt.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\assets.zip" Link="assets.zip" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\assets.zip')" />
+    <None Include="..\..\assets-acz.zip" Link="assets-acz.zip" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\assets-acz.zip')" />
   </ItemGroup>
 </Project>

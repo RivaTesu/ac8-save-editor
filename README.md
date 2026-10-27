@@ -16,9 +16,20 @@ Save editor for ACE COMBAT 8: Wings of Theve. It opens Campaign.sav and System.s
 
 Every save makes a timestamped backup in `SaveGames\backup_ac8edit` first.
 
+## ACE COMBAT ZERO (Steam port)
+
+The "ACE COMBAT ZERO..." button opens a second editor for the PC port's `save.sav` (`<Steam>\userdata\<account>\2288340\remote\aczero\save\save.sav`). The editor looks for the file under the Steam install path. If your library is somewhere else, use "Save file...". The save is encrypted with the Steam account id. A save copied from another account still opens, and saving encrypts it again for the account in the folder path (or the id you type).
+
+- Overview: play time, credits, current mission, ace style gauge and difficulty. One click buys everything or marks every mission S.
+- Hangar: the 36 aircraft in hangar order, with hangar screenshots, role, description, stats, price and the three SP weapons. Tick an aircraft to own it, and tick its color schemes and SP weapons separately.
+- Missions: cleared flag, rank, best time and score for each mission, difficulty and ace style.
+- Medals and assault records (169 aces) with the in-game text.
+
+Each save writes a backup to `backup_ac8edit` next to `save.sav`. The format is in [docs/acz-save-format.md](docs/acz-save-format.md). Aircraft screenshots, descriptions and weapon names come from the [Ace Combat Wiki](https://acecombat.fandom.com/wiki/Ace_Combat_Zero:_The_Belkan_War/Aircraft) (CC BY-SA). Mission titles, prices and stats come from the game files. All of it ships in `assets-acz.zip`, which goes next to the exe.
+
 ## Download
 
-Grab the zip from [Releases](../../releases), unzip anywhere, run `Ac8SaveEditor.exe`. No .NET install needed. Keep `assets.zip` next to the exe; the icons, names and descriptions come from it.
+Grab the zip from [Releases](../../releases), unzip anywhere, run `Ac8SaveEditor.exe`. No .NET install needed. Keep `assets.zip` and `assets-acz.zip` next to the exe; the icons, names and descriptions come from them.
 
 Close the game before saving. If you use Steam Cloud, turn it off for the game while you edit, or the cloud copy overwrites your file.
 
@@ -32,11 +43,12 @@ Requires the .NET 10 SDK on Windows.
 dotnet publish src/Ac8SaveEditor -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish
 ```
 
-The game data (icons, tables, text) is not in this repository. Download [assets.zip](https://github.com/RivaTesu/ac8-save-editor/releases/latest/download/assets.zip) and put it in the repository root before building, or next to the published exe afterwards. Without it the editor still opens and edits saves, just without names and pictures.
+The game data (icons, tables, text) is not in this repository. Download [assets.zip](https://github.com/RivaTesu/ac8-save-editor/releases/latest/download/assets.zip) and [assets-acz.zip](https://github.com/RivaTesu/ac8-save-editor/releases/latest/download/assets-acz.zip) and put them in the repository root before building, or next to the published exe afterwards. Without them the editor still opens and edits saves, just without names and pictures.
 
 ## Project layout
 
 - `src/Ac8Save`: save parser and writer (GVAS, UE 5.4 property tags), checksum, typed campaign view, asset loader.
+- `src/AczSave`: ACE COMBAT ZERO save codec (container cipher, LZ4, raw layout, typed campaign view). `src/AczSave.Cli` decodes a file and checks the round trip.
 - `src/Ac8SaveEditor`: WPF app.
 
 The parser round-trips both save files byte for byte before any edit and refuses to save if that check fails.
